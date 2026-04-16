@@ -1,4 +1,4 @@
-# pyenv 环境全自动部署脚本
+# Python 环境全自动部署脚本
 
 该项目用于自动化完成 Python 开发环境初始化，当前已实现 Windows 版本（Batch 脚本），Linux/macOS 版本处于规划中。
 
