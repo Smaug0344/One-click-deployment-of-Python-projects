@@ -117,6 +117,9 @@ pause
 - 检查 `requirements.txt` 格式
 - 检查虚拟环境是否创建成功
 
+4、闪退问题
+- Windows下打开CMD窗口，进入项目目录，执行`AutoInstall.bat`，查看具体报错信息，解决后重试
+
 ## 跨系统规划
 
 | 功能 | Windows (Batch) | Linux (Bash) | macOS (Bash) |

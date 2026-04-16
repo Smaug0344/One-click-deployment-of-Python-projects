@@ -181,7 +181,7 @@ if exist "%VENV_PATH%\Scripts\activate.bat" (
     )
 )
 
-:: ====================== Node.js: 从 packages 查找并安装 (末尾执行) ======================
+:: ====================== Node.js: 从 packages 查找并安装 ======================
 if defined AUTO_INSTALL_NODEJS (
     if /I "%AUTO_INSTALL_NODEJS%"=="yes" (
         echo.
@@ -283,7 +283,6 @@ if exist "%REQUIREMENTS%" (
     echo ⚠️ 未找到 requirements.txt，跳过依赖安装
 )
 
-:: Node.js 自动安装已移动到脚本末尾（从 packages 中查找安装包，版本不定）
 
 :: ====================== 生成一键启动 ======================
 set "STARTUP_BAT=%BAT_DIR%\一键启动.bat"
