@@ -1,0 +1,11 @@
+@echo off
+chcp 65001 >nul 2>&1  :: 设置编码为UTF-8，避免中文乱码
+
+:: 切换到bat文件所在的当前目录
+cd /d "%~dp0"
+
+:: 激活虚拟环境并运行Python脚本（使用start命令分离进程）
+start "" /B cmd /c "虚拟环境示例\Scripts\activate && python main.py"
+
+:: 立即关闭bat窗口，不等待Python脚本结束
+exit
