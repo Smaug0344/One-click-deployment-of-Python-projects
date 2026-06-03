@@ -9,7 +9,7 @@ namespace AutoInstall
         static int Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
-            Console.Title = "pyenv 环境部署";
+            Console.Title = "pyenv 环境部署（项目本地）";
 
             PrintBanner();
 
@@ -31,13 +31,15 @@ namespace AutoInstall
                     Console.WriteLine("DefaultExecution : {0}", config.DefaultExecution);
                 Console.WriteLine();
 
-                // ========== 3. 安装 pyenv ==========
+                // ========== 3. 安装 pyenv（项目本地） ==========
                 var pyenvBat = PyenvService.Install(batDir);
 
-                // ========== 4. 安装 Python ==========
+                // ========== 4. 安装 Python 到项目本地 ==========
+                // Python 安装到 .pyenv\pyenv-win\versions\ 下，不写入系统
                 var pythonExe = PyenvService.InstallPython(pyenvBat, config.Version, batDir);
 
                 // ========== 5. 创建虚拟环境 ==========
+                // 使用项目本地的 Python 创建 venv，venv 是独立的隔离环境
                 var venvPath = Path.Combine(batDir, config.VenvName);
                 var venvPython = VenvService.GetVenvPython(venvPath);
                 VenvService.Create(pythonExe, venvPath);
@@ -51,7 +53,8 @@ namespace AutoInstall
                 }
 
                 // ========== 7. 安装 pip 依赖 ==========
-                VenvService.InstallRequirements(venvPath, batDir);
+                var upgradePip = !string.Equals(config.UpgradePip, "no", StringComparison.OrdinalIgnoreCase);
+                VenvService.InstallRequirements(venvPath, batDir, upgradePip);
 
                 // ========== 8. 生成一键启动 ==========
                 StartupGenerator.Generate(batDir, config.VenvName, venvPath, venvPython,
@@ -93,7 +96,7 @@ namespace AutoInstall
         {
             Console.WriteLine();
             Console.WriteLine("==============================================");
-            Console.WriteLine("      pyenv 全自动部署");
+            Console.WriteLine("      pyenv 全自动部署（项目本地）");
             Console.WriteLine("==============================================");
             Console.WriteLine();
         }
@@ -107,8 +110,7 @@ namespace AutoInstall
             else
                 Console.WriteLine("     部署完成（存在错误，请查看上方消息）");
             Console.WriteLine("==============================================");
-            Console.WriteLine("已使用 pyenv 版本");
-            Console.WriteLine("已安装缺失依赖");
+            Console.WriteLine("pyenv 与 Python 均安装于项目目录内，未写入系统");
         }
     }
 }

@@ -26,7 +26,7 @@ namespace AutoInstall.Services
             Console.WriteLine("虚拟环境: {0}", venvPath);
         }
 
-        public static void InstallRequirements(string venvPath, string batDir)
+        public static void InstallRequirements(string venvPath, string batDir, bool upgradePip = true)
         {
             var requirements = Path.Combine(batDir, "requirements.txt");
             var pythonExe = Path.Combine(venvPath, "Scripts", "python.exe");
@@ -41,8 +41,15 @@ namespace AutoInstall.Services
 
             ConsoleProgress.Step("安装 pip 依赖");
 
-            // 升级 pip（输出少，快速）
-            ConsoleProgress.RunWithOutput(pythonExe, "-m pip install --upgrade pip");
+            // 升级 pip（可配置跳过）
+            if (upgradePip)
+            {
+                ConsoleProgress.RunWithOutput(pythonExe, "-m pip install --upgrade pip");
+            }
+            else
+            {
+                Console.WriteLine("[INFO] 已配置跳过 pip 升级");
+            }
 
             // 安装依赖（pip 自带下载进度条，实时可见）
             int exitCode = ConsoleProgress.RunWithOutput(pipExe,

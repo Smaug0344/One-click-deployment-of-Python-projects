@@ -1,11 +1,11 @@
 # Python 环境全自动部署工具 (.NET 4.5)
 
-该项目用于自动化完成 Python 开发环境初始化。
+该项目用于自动化完成 Python 开发环境初始化。**pyenv 与 Python 均安装于项目目录内，不写入系统 PATH 或注册表，Python 仅用于创建和运行虚拟环境。**
 
 支持功能：
 
-- pyenv-win 自动解压与安装
-- 指定 Python 版本安装（优先使用本地安装包）
+- pyenv-win 自动解压与安装（项目本地）
+- 指定 Python 版本安装到项目本地（优先使用本地安装包）
 - 虚拟环境自动创建
 - requirements.txt 依赖安装
 - 可选 Node.js 自动安装（MSI / ZIP）
@@ -67,27 +67,29 @@ AutoInstall.exe
 ```
 1. 读取 Config/config.ini
         │
-2. 解压 pyenv-win.zip → 复制到 .pyenv/pyenv-win/
+2. 解压 pyenv-win.zip → 复制到 .pyenv/pyenv-win/（项目本地）
         │
 3. 扫描 packages/ 查找本地 Python 安装包
    ├── 找到 → 复制到 install_cache → 跳过下载
    └── 未找到 → 在线下载
         │
-4. pyenv install <VERSION> → pyenv local → pyenv rehash
+4. pyenv install <VERSION> → 安装到 .pyenv/pyenv-win/versions/
         │
-5. python -m venv <VENV_NAME>
+5. python -m venv <VENV_NAME>  → Python 仅作用于虚拟环境
         │
 6. [可选] 安装 Node.js
    ├── 已安装 → 跳过
    ├── *.msi → msiexec /i 静默安装
    └── *.zip → 解压到 nodejs/ 并加入 PATH
         │
-7. pip install -r requirements.txt
+7. pip install -r requirements.txt  → 依赖安装到虚拟环境
         │
 8. 生成 一键启动.bat（从 Config/*.txt 模板或默认内容）
         │
 9. 完成
 ```
+
+> **关键设计**：pyenv 安装到 `.pyenv/`（项目本地），Python 安装到 `.pyenv/pyenv-win/versions/`（项目本地）。环境变量仅设置在当前进程中（`EnvironmentVariableTarget.Process`），`AutoInstall.exe` 退出后自动失效，系统不受任何影响。Python 的唯一用途是创建虚拟环境 —— 所有依赖和运行均在 venv 内完成。
 
 ---
 
@@ -177,7 +179,7 @@ MSBuild AutoInstall.csproj /p:Configuration=Release
 | `ConsoleProgress.cs` | 进度条 / 实时进程输出 |
 | `DeployException.cs` | 自定义部署异常 |
 | `NodeJsService.cs` | Node.js 检测 + MSI/ZIP 安装 |
-| `PyenvService.cs` | pyenv 解压 / Python 安装 / 本地包加速 |
+| `PyenvService.cs` | pyenv 本地解压 / Python 版本管理 |
 | `StartupGenerator.cs` | 一键启动.bat 生成（占位符替换） |
 | `VenvService.cs` | 虚拟环境创建 + pip 依赖安装 |
 
@@ -222,10 +224,11 @@ MSBuild AutoInstall.csproj /p:Configuration=Release
 
 ```
 .pyenv/           # pyenv 安装目录
-pyenv_temp/       # 临时解压目录
 <VENV_NAME>/      # 虚拟环境目录（如 venv/）
 nodejs/           # Node.js 解压目录（如存在）
 ```
+
+> 所有文件均位于项目目录内，删除上述目录即可完全清理，系统中不留任何痕迹。
 
 ---
 

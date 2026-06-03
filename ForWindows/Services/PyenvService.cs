@@ -4,10 +4,16 @@ using System.IO;
 namespace AutoInstall.Services
 {
     /// <summary>
-    /// pyenv 解压、安装、Python 版本管理
+    /// pyenv 本地解压、安装、Python 版本管理。
+    /// 所有操作均在项目目录内完成，不修改系统 PATH / 注册表，
+    /// Python 仅用于创建虚拟环境，不暴露到系统。
     /// </summary>
     public static class PyenvService
     {
+        /// <summary>
+        /// 安装 pyenv 到项目本地目录 .pyenv\pyenv-win，
+        /// 设置进程级环境变量（退出后自动失效，不影响系统）。
+        /// </summary>
         public static string Install(string batDir)
         {
             var packagesDir = Path.Combine(batDir, "packages");
@@ -45,11 +51,11 @@ namespace AutoInstall.Services
             var pyenvWinRoot = Directory.GetParent(Directory.GetParent(pyenvBat).FullName).FullName;
             Console.WriteLine("找到 pyenv: {0}", pyenvBat);
 
-            // ---- 安装到 .pyenv\pyenv-win ----
+            // ---- 安装到 .pyenv\pyenv-win（项目本地） ----
             if (!Directory.Exists(targetPyenvWin))
             {
                 ConsoleProgress.CopyDirectoryWithProgress(pyenvWinRoot, targetPyenvWin,
-                    "安装 pyenv 到 .pyenv\\pyenv-win");
+                    "安装 pyenv 到 .pyenv\\pyenv-win（项目本地）");
 
                 try { Directory.Delete(unzipTemp, true); }
                 catch { Console.WriteLine("[WARN] 无法删除临时目录 {0}", unzipTemp); }
@@ -62,31 +68,35 @@ namespace AutoInstall.Services
 
             var pyenvBin = Path.GetDirectoryName(pyenvBat);
 
-            // ---- 设置环境变量 ----
+            // ---- 设置环境变量（仅当前进程，不写入系统） ----
+            // 使用 Process 级别：AutoInstall.exe 退出后自动失效
             var currentPath = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("PATH", pyenvBin + ";" + currentPath, EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("PYENV_ROOT", pyenvRoot, EnvironmentVariableTarget.Process);
 
+            Console.WriteLine("[OK] pyenv 已就绪（仅作用于本次部署进程）");
             return pyenvBat;
         }
 
         /// <summary>
-        /// 使用 pyenv 安装指定版本的 Python。
+        /// 使用 pyenv 安装指定版本的 Python 到项目本地。
+        /// Python 安装路径：.pyenv\pyenv-win\versions\<version>\
         /// 优先从 packages 文件夹查找本地安装包，避免重复下载。
         /// </summary>
         public static string InstallPython(string pyenvBat, string version, string batDir)
         {
-            ConsoleProgress.Step(string.Format("安装 Python {0}", version));
+            ConsoleProgress.Step(string.Format("安装 Python {0}（项目本地）", version));
 
             // ---- 检查 packages 中是否有本地安装包 ----
             TryUseLocalInstaller(version, batDir);
 
-            // pyenv install（如果 install_cache 有缓存则跳过下载）
+            // pyenv install（Python 安装到 .pyenv\pyenv-win\versions\ 下）
             int exitCode = ConsoleProgress.RunCmdWithOutput(pyenvBat,
                 string.Format("install {0}", version));
             if (exitCode != 0)
                 throw new DeployException(string.Format("pyenv install 返回错误码 {0}。", exitCode));
 
+            // 设置当前目录的本地 Python 版本（生成 .python-version 文件）
             ConsoleProgress.RunCmdWithOutput(pyenvBat, string.Format("local {0}", version));
             ConsoleProgress.RunCmdWithOutput(pyenvBat, "rehash");
 
@@ -97,6 +107,7 @@ namespace AutoInstall.Services
             pythonPath = pythonPath.Trim();
             Console.WriteLine();
             Console.WriteLine("Python 路径: {0}", pythonPath);
+            Console.WriteLine("[OK] Python {0} 已安装到项目本地，仅用于创建虚拟环境", version);
 
             return pythonPath;
         }

@@ -12,6 +12,7 @@ namespace AutoInstall.Services
         public string Version { get; set; }
         public string VenvName { get; set; }
         public string DefaultExecution { get; set; }
+        public string UpgradePip { get; set; }
         public string AutoInstallNodeJs { get; set; }
         public string NodeVersion { get; set; }
 
@@ -56,6 +57,7 @@ namespace AutoInstall.Services
                     case "VERSION":              config.Version = value; break;
                     case "VENV_NAME":            config.VenvName = value; break;
                     case "DefaultExecution":     config.DefaultExecution = value; break;
+                    case "UPGRADE_PIP":           config.UpgradePip = value; break;
                     case "AUTO_INSTALL_NodeJs":  config.AutoInstallNodeJs = value; break;
                     case "NODE_VERSION":         config.NodeVersion = value; break;
                 }
