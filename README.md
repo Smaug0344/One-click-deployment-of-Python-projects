@@ -205,9 +205,6 @@ MSBuild AutoInstall.csproj /p:Configuration=Release
 
 程序会在安装完成后自动清理 `pyenv_temp`。若手动中断导致残留，删除该目录后重新运行即可。
 
-### 6. 控制台中文乱码
-
-程序已内置 UTF-8 输出。若仍出现乱码，请确认控制台字体支持中文（推荐 "新宋体" 或 "Consolas"）。
 
 ---
 
