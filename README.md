@@ -1,150 +1,234 @@
-# Python 环境全自动部署脚本
+# Python 环境全自动部署工具 (.NET 4.5)
 
-该项目用于自动化完成 Python 开发环境初始化，当前已实现 Windows 版本（Batch 脚本），Linux/macOS 版本处于规划中。
+该项目用于自动化完成 Python 开发环境初始化。
 
-支持内容：
+支持功能：
 
-- pyenv 解压与调用
-- 指定 Python 版本安装
+- pyenv-win 自动解压与安装
+- 指定 Python 版本安装（优先使用本地安装包）
 - 虚拟环境自动创建
-- requirements 依赖安装
-- 可选 Node.js 自动安装（MSI/ZIP）
-- 生成一键启动脚本（支持占位符替换）
+- requirements.txt 依赖安装
+- 可选 Node.js 自动安装（MSI / ZIP）
+- 一键启动脚本生成（支持占位符替换）
 
-## 当前目录结构
+---
+
+## 目录结构
 
 ```text
-├── AutoInstall.bat          # Windows 主部署脚本（已实现）
-├── AutoInstall.sh           # Linux/macOS 主部署脚本（待开发）
-├── Config/                  # 跨系统通用配置目录
-│   └── config.ini           # 核心配置文件
-|   └── 任意名称.txt          # 自定义一键启动bat命令
-├── packages/                # 安装包目录（Windows 专用）
-│   ├── pyenv-win.zip        # pyenv-win 压缩包（Windows）
-│   ├── node-vX.X.X-x64.msi  # 可选：Node.js MSI安装包（Windows）
-│   └── node-vX.X.X-win-x64.zip # 可选：Node.js ZIP安装包（Windows）
-└── requirements.txt         # 跨系统通用：Python依赖清单
+项目根目录/
+├── AutoInstall.exe              # .NET 4.5 控制台部署程序
+├── Config/
+│   ├── config.ini               # 核心配置文件
+│   └── 任意名称.txt              # 自定义一键启动模板
+├── packages/
+│   ├── pyenv-win.zip            # pyenv-win 压缩包（必选）
+│   ├── python-x.x.x-amd64.exe   # 可选：Python 本地安装包（离线加速）
+│   ├── node-vX.X.X-x64.msi      # 可选：Node.js MSI 安装包
+│   └── node-vX.X.X-win-x64.zip  # 可选：Node.js ZIP 安装包
+└── requirements.txt             # Python 依赖清单
+
 ```
 
+---
 
 ## 配置文件说明
 
-配置文件路径：`ForWindows/Config/config.ini`
-
-示例：
+配置文件路径：`Config/config.ini`
 
 ```ini
-[settings]
-# Python版本
-VERSION=3.13.2
-# 虚拟环境名称
-VENV_NAME=你的虚拟环境名称
-# 是否自动安装NodeJs
+# Python 版本（必填）
+VERSION=3.11.9
+# 虚拟环境名称（必填）
+VENV_NAME=venv
+# 是否自动安装 Node.js（yes / no）
 AUTO_INSTALL_NodeJs=yes
-# 默认Python执行命令
+# Node.js 版本号（参考用，实际以 packages 中的安装包为准）
+NODE_VERSION=20.10.0
+# 一键启动默认执行命令
 DefaultExecution=python main.py
 ```
 
-## 使用步骤（Windows）
+---
 
-1. 准备文件
+## 使用方式
 
-- 将`ForWindows`下的所有文件移动到目标项目根目录下
-- 将 `pyenv-win.zip` 放到 `packages/`
-- 可选：将 Node.js 安装包（`.msi` 或 `.zip`）放到 `packages/`下  [Node.js官网](https://nodejs.org/en/download)
-- 可选：在 `requirements.txt` 中写入 Python 依赖或直接使用目标项目包中的`requirements.txt`
-- 可选：将`Remove_env.bat`放到目标项目根目录下
-
-1. 配置参数
-
-- 编辑 `/Config/config.ini`
-- 至少确认 `VERSION` 与 `VENV_NAME` 两项
-- 如果不需要Node.js自动安装则需要把`Config/config.ini`中的[AUTO_INSTALL_NodeJs]设置为[no]
-  
-1. 执行部署
+将 `AutoInstall.exe` 放到项目根目录（与 `packages/`、`Config/`、`requirements.txt` 同级），双击运行。
 
 ```bat
-cd ForWindows
-AutoInstall.bat
+:: 推荐通过命令行运行，方便查看完整输出定位问题
+AutoInstall.exe
 ```
 
-建议使用管理员权限运行（尤其是 MSI 安装 Node.js 时）。
+---
 
-4. 启动使用
+## 部署流程
 
-- 部署完成后，运行脚本生成的一键启动文件（通常为 `ForWindows/一键启动.bat`）
-- 该脚本会激活虚拟环境，并执行 `DefaultExecution` 或自定义启动模板内容
-  
-5.其他说明
-- 如果中途安装失败，请先检查控制台报错信息，确认网络状况，并清理根目录下的`.pyenv` `pyenv_temp` `你配置的虚拟环境名称(默认venvName)`三个文件夹然后重试
+```
+1. 读取 Config/config.ini
+        │
+2. 解压 pyenv-win.zip → 复制到 .pyenv/pyenv-win/
+        │
+3. 扫描 packages/ 查找本地 Python 安装包
+   ├── 找到 → 复制到 install_cache → 跳过下载
+   └── 未找到 → 在线下载
+        │
+4. pyenv install <VERSION> → pyenv local → pyenv rehash
+        │
+5. python -m venv <VENV_NAME>
+        │
+6. [可选] 安装 Node.js
+   ├── 已安装 → 跳过
+   ├── *.msi → msiexec /i 静默安装
+   └── *.zip → 解压到 nodejs/ 并加入 PATH
+        │
+7. pip install -r requirements.txt
+        │
+8. 生成 一键启动.bat（从 Config/*.txt 模板或默认内容）
+        │
+9. 完成
+```
+
+---
+
+## 本地安装包加速
+
+将对应版本的 Python 安装包放到 `packages/` 文件夹，程序会自动检测并复制到 pyenv 的 `install_cache`，**跳过在线下载**。
+
+**文件名匹配规则**（按优先级）：
+
+```
+python-3.11.9-amd64.exe    ← 精确匹配（推荐命名）
+python-3.11.9-amd64.msi
+python-3.11.9.exe
+python-3.11.9.msi
+python-3.11.9-win32.exe
+*python*3.11.9*.exe        ← 模糊匹配兜底
+*python*3.11.9*.msi
+```
+
+> 安装包可从 [Python 官方下载页](https://www.python.org/downloads/) 获取。
+
+---
 
 ## 一键启动脚本自定义
 
-脚本会在 `ForWindows/Config/` 下查找第一个 `.txt` 文件，并据此生成一键启动脚本。
+程序会在 `Config/` 下递归查找第一个 `.txt` 文件作为启动模板。若未找到模板，则生成默认内容：
 
-可用占位符：
+```bat
+call %~dp0<VENV_NAME>\Scripts\activate.bat
+<DefaultExecution>
+```
 
-- `{BAT_DIR}`：脚本目录（Windows）
-- `{VENV_NAME}`：虚拟环境名称
-- `{VENV_PATH}`：虚拟环境完整路径
-- `{VENV_PYTHON}`：虚拟环境 Python 可执行文件路径
+**模板占位符**：
 
-Windows 模板示例：
+| 占位符 | 替换内容 |
+|--------|---------|
+| `{BAT_DIR}` | 脚本所在目录完整路径 |
+| `{VENV_NAME}` | 虚拟环境名称 |
+| `{VENV_PATH}` | 虚拟环境完整路径 |
+| `{VENV_PYTHON}` | 虚拟环境 Python.exe 完整路径 |
 
-```text
+**模板示例**：
+
+```bat
 @echo off
+chcp 65001 >nul
 call {VENV_PATH}\Scripts\activate.bat
-echo 虚拟环境已激活，当前 Python 路径：{VENV_PYTHON}
-cd {BAT_DIR}\src
+echo 虚拟环境已激活
+echo Python: {VENV_PYTHON}
+cd /d {BAT_DIR}\src
 python main.py
 pause
 ```
 
+---
+
+## 编译（开发者）
+
+### 前置条件
+
+- Windows 系统
+- .NET Framework 4.5 或更高版本
+
+### 编译命令
+
+```bat
+:: 使用 csc.exe 直接编译
+C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe ^
+    /out:AutoInstall.exe ^
+    /target:exe ^
+    /reference:System.dll ^
+    /reference:System.Core.dll ^
+    /reference:System.IO.Compression.dll ^
+    /reference:System.IO.Compression.FileSystem.dll ^
+    /recurse:*.cs
+
+:: 或使用 MSBuild
+MSBuild AutoInstall.csproj /p:Configuration=Release
+```
+
+### 源码结构
+
+| 文件 | 职责 |
+|------|------|
+| `Program.cs` | 入口 + 主流程编排 |
+| `ConfigReader.cs` | Config\config.ini 解析与验证 |
+| `ConsoleProgress.cs` | 进度条 / 实时进程输出 |
+| `DeployException.cs` | 自定义部署异常 |
+| `NodeJsService.cs` | Node.js 检测 + MSI/ZIP 安装 |
+| `PyenvService.cs` | pyenv 解压 / Python 安装 / 本地包加速 |
+| `StartupGenerator.cs` | 一键启动.bat 生成（占位符替换） |
+| `VenvService.cs` | 虚拟环境创建 + pip 依赖安装 |
+
+---
+
 ## 常见问题
 
-1. pyenv 安装 Python 失败
+### 1. 闪退看不到错误
 
-- 检查网络
-- 检查 `VERSION` 格式是否受 pyenv-win 支持
+使用命令行运行 `AutoInstall.exe`，所有错误路径都会暂停并显示详细信息。
 
-2. Node.js 安装失败
+### 2. pyenv 安装 Python 失败
 
-- 检查安装包是否完整
-- 查看日志：`%TEMP%\node_install.log`
+- 检查网络连接
+- 确认 `VERSION` 格式被 pyenv-win 支持（如 `3.11.9`）
+- 将 Python 安装包放入 `packages/` 使用离线安装
 
-3. requirements 安装失败
+### 3. Node.js 安装失败
 
-- 检查 `requirements.txt` 格式
-- 检查虚拟环境是否创建成功
+- 检查 MSI/ZIP 安装包完整性
+- MSI 安装日志：`%TEMP%\node_install.log`
+- ZIP 安装失败可手动解压到 `nodejs/` 目录
 
-4、闪退问题
-- Windows下打开CMD窗口，进入项目目录，执行`AutoInstall.bat`，查看具体报错信息，解决后重试
+### 4. requirements.txt 安装失败
 
-## 跨系统规划
+- 检查依赖包名和版本号格式
+- 确认虚拟环境创建成功（`<VENV_NAME>/Scripts/python.exe` 存在）
 
-| 功能 | Windows (Batch) | Linux (Bash) | macOS (Bash) |
-| --- | --- | --- | --- |
-| pyenv 环境部署 | 已实现 | 待开发 | 待开发 |
-| Python 版本安装 | 已实现 | 待开发 | 待开发 |
-| 虚拟环境创建 | 已实现 | 待开发 | 待开发 |
-| requirements 安装 | 已实现 | 待开发 | 待开发 |
-| Node.js 自动安装 | 已实现 | 待开发 | 待开发 |
-| 一键启动脚本生成 | 已实现 | 待开发 | 待开发 |
+### 5. pyenv_temp 残留
 
-Linux/macOS 后续适配方向：
+程序会在安装完成后自动清理 `pyenv_temp`。若手动中断导致残留，删除该目录后重新运行即可。
 
-- pyenv 安装：apt/yum/brew 或源码方式
-- Node.js 安装：nvm、包管理器或官方二进制包
-- 虚拟环境路径与激活命令的跨平台适配
-- 系统环境变量写入策略适配
+### 6. 控制台中文乱码
 
-## 注意事项
+程序已内置 UTF-8 输出。若仍出现乱码，请确认控制台字体支持中文（推荐 "新宋体" 或 "Consolas"）。
 
-1. 脚本使用 UTF-8，若终端出现乱码，请确认控制台编码设置
-2. 运行前请确认系统可用 PowerShell（用于解压）
-3. 若安装失败，请优先查看控制台报错与 Node.js 安装日志
-4. pyenv 支持的 Python 版本：
-- Windows：参考 [pyenv-win](https://github.com/pyenv-win/pyenv-win)
-- Linux/macOS：参考 [pyenv](https://github.com/pyenv/pyenv)
+---
+
+## 清理与重置
+
+如果部署中途失败需要重新开始，删除以下目录：
+
+```
+.pyenv/           # pyenv 安装目录
+pyenv_temp/       # 临时解压目录
+<VENV_NAME>/      # 虚拟环境目录（如 venv/）
+nodejs/           # Node.js 解压目录（如存在）
+```
+
+---
+
 ## 许可证
-本脚本为开源版本，可自由修改和分发，使用时请遵守 pyenv、Node.js 等相关软件的开源协议。
+
+本项目为开源工具，可自由修改和分发。使用时请遵守 pyenv、Node.js、Python 等相关软件的许可协议。
