@@ -55,11 +55,6 @@ DefaultExecution=python main.py
 
 将 `AutoInstall.exe` 放到项目根目录（与 `packages/`、`Config/`、`requirements.txt` 同级），双击运行。
 
-```bat
-:: 推荐通过命令行运行，方便查看完整输出定位问题
-AutoInstall.exe
-```
-
 ---
 
 ## 部署流程
